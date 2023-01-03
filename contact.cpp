@@ -1,7 +1,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <string>
 #include <iostream>
-//#include "contact.h"
+#include "contact.h"
 
 #define USE_ALT
 #ifdef USE_ALT
@@ -13,6 +13,22 @@
 #define OBSERVER "com.DebianArch.AnisettePlugin.Response"
 #endif
 std::string parseArchivedData(CFDataRef cf_anisette);
+//char * MYCFStringCopyUTF8String(CFStringRef aString) {
+//  if (aString == NULL) {
+//    return NULL;
+//  }
+//
+//  CFIndex length = CFStringGetLength(aString);
+//  CFIndex maxSize =
+//  CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8) + 1;
+//  char *buffer = (char *)malloc(maxSize);
+//  if (CFStringGetCString(aString, buffer, maxSize,
+//                         kCFStringEncodingUTF8)) {
+//    return buffer;
+//  }
+//  free(buffer); // If we failed
+//  return NULL;
+//}
 
 std::string globalAnisette = "";
 CFNotificationCenterRef center = CFNotificationCenterGetDistributedCenter();
@@ -30,18 +46,22 @@ void notificationHandler(CFNotificationCenterRef center,
     CFStringRef cf_anisette = NULL;
 #endif
     CFDictionaryGetValueIfPresent(userInfo, CFSTR("anisetteData"), (const void**)&cf_anisette);
-
-#ifdef USE_ALT
     CFPropertyListRef plist = CFPropertyListCreateWithData(NULL, cf_anisette, kCFPropertyListImmutable, NULL, NULL);
     globalAnisette = parseArchivedData(cf_anisette).c_str();
-#else
-    const char *utf8Str = CFStringGetCStringPtr(cf_anisette, kCFStringEncodingMacRoman);
-    globalAnisette = utf8Str;
-#endif
 //    CFRelease(cf_anisette);
     std::cout << "response: " << globalAnisette << std::endl;
     dispatch_semaphore_signal(sema);
 };
+
+//void debugPrint(CFTypeRef object)
+//{
+//    CFStringRef rep = CFCopyDescription(object);
+//    char *str = MYCFStringCopyUTF8String(rep);
+//    printf("Hello: '%s'\n",str);
+//
+//    free(str);
+//    CFRelease(rep);
+//}
 
 typedef struct __CFRuntimeBase {
     uintptr_t _cfisa;
@@ -98,6 +118,7 @@ std::string parseArchivedData(CFDataRef cf_anisette)
         ]
      */
     CFDictionaryRef plist = (CFDictionaryRef)CFPropertyListCreateWithData(NULL, cf_anisette, kCFPropertyListImmutable, NULL, NULL);
+//    debugPrint(plist);
     CFArrayRef objects = (CFArrayRef)CFDictionaryGetValue(plist, CFSTR("$objects"));
     CFDictionaryRef keyDict = (CFDictionaryRef)CFArrayGetValueAtIndex(objects, 1);
     
@@ -140,7 +161,7 @@ std::string parseArchivedData(CFDataRef cf_anisette)
         }
         else if (rep.compare("deviceDescription") == 0)
         {
-            ret.append("\"" + mappings.at(rep) + "\":\"<MacBookPro15,1> <Mac OS X;10.15.2;19C57> <com.apple.AuthKit/1 (com.apple.dt.Xcode/3594.4.19)>\"");
+            ret.append("\"" + mappings.at(rep) + "\":\"<iMac20,2> <Mac OS X;13.1;22C65> <com.apple.AuthKit/1 (com.apple.dt.Xcode/3594.4.19)>\"");
             continue;
         }
         
@@ -249,7 +270,7 @@ void webserver(int port)
 #include <notify_keys.h>
 
 #include <dispatch/dispatch.h>
-int main()//Start()
+void Start()
 { // Starts redirecting anisette response to a mini webserver...
     CFNotificationCenterAddObserver
     (
